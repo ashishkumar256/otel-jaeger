@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger-basics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger-basics
+  template:
+    metadata:
+      labels:
+        app: jaeger-basics
+    spec:
+      containers:
+      - name: django
+        image: your-registry/jaeger-basics:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-agent-opentelemetry-collector.tracing.svc:4318"
+        - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+          value: "http://otel-agent-opentelemetry-collector.tracing.svc:4318"
+        - name: OTEL_TRACES_EXPORTER
+          value: "console,otlp"
+        - name: OTEL_SERVICE_NAME
+          value: "hello-django"
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: "http/protobuf"
+        - name: OTEL_LOG_LEVEL
+          value: "DEBUG"
