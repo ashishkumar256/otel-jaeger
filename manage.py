@@ -5,14 +5,14 @@ import sys
 import logging
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
-# Enable trace context injection
-LoggingInstrumentor().instrument(set_logging_format=True)
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] [trace_id=%(otelTraceID)s span_id=%(otelSpanID)s] %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
+
+# Enable trace context injection
+LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.DEBUG)
 
 def main():
     """Run administrative tasks."""
