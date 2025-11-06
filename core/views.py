@@ -1,6 +1,6 @@
 import logging
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from opentelemetry.trace import get_current_span
 
 logger = logging.getLogger(__name__)
@@ -11,8 +11,6 @@ def hello(request):
     logger.info("Current span: %s", span_context)
     logger.info(f"Hello view accessed — DEBUG={settings.DEBUG}")    
     return HttpResponse(f"Hello, world! with span: {span_context}")
-
-def list_instrumentations(request):
     try:
         # Try different import paths for auto_instrumentation_loader
         from opentelemetry.instrumentation.auto_instrumentation import (
