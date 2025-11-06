@@ -4,6 +4,9 @@ services:
     network_mode: "host"
     build:
       context: ./frontend
+    env_file:
+      - .env      
     volumes:
       - ./frontend:/app
     container_name: frontend
+    command: opentelemetry-instrument python app.py

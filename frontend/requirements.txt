@@ -1,1 +1,4 @@
 flask==2.3.3
+opentelemetry-distro==0.47b0
+opentelemetry-exporter-otlp-proto-http==1.26.0
+opentelemetry-instrumentation-logging==0.47b0
