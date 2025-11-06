@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import hello
+from .views import hello, list_instrumentations
 
 urlpatterns = [
     path('api/hello', hello),
+    path('api/list', list_instrumentations),
 ]
 
