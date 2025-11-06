@@ -1,0 +1,9 @@
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./frontend:/app
+    restart: unless-stopped
