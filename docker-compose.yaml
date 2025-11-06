@@ -5,7 +5,7 @@ services:
     build:
       context: ./frontend
     env_file:
-      - .env      
+      - ./frontend/.env      
     volumes:
       - ./frontend:/app
     container_name: frontend
