@@ -17,7 +17,9 @@ def initialize_redis_client(conn_retry_count=1):
         r = redis.Redis(
             host=settings.REDIS_HOST,
             port=int(settings.REDIS_PORT),
-            decode_responses=True
+            decode_responses=True,
+            socket_connect_timeout=10,
+            socket_timeout=5,    
         )
         r.ping()
         logger.info(f"Connected to Redis at {settings.REDIS_SERVER}")
