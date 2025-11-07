@@ -53,6 +53,8 @@ spec:
           value: aws-lambda                                                                      
         - name: DJANGO_SETTINGS_MODULE
           value: backend.settings
+        - name: REDIS_SERVER
+          value: "127.0.0.1:6379"
       - name: redis
         image: redis
         imagePullPolicy: Always
@@ -92,4 +94,4 @@ spec:
     - name: redis
       protocol: TCP
       port: 6379
-      targetPort: 6379          
+      targetPort: 6379
