@@ -54,7 +54,6 @@ spec:
             command:
             - redis-cli
             - PING
-          initialDelaySeconds: 15
           periodSeconds: 60
           timeoutSeconds: 5
         livenessProbe:
@@ -62,10 +61,8 @@ spec:
             command:
             - redis-cli
             - PING
-          initialDelaySeconds: 15
           periodSeconds: 60
           timeoutSeconds: 5
-          failureThreshold: 3
 
 ---
 apiVersion: v1
