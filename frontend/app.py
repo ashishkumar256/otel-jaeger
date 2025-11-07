@@ -72,6 +72,10 @@ def sunspot_combined_query():
     logger.info(f"Request completed with status: {status}")
     return result, status
 
+@app.route('/health')
+def health_check():
+    return 'OK', 200
+
 if __name__ == '__main__':
     logger.info("Starting Sunspot Flask application")
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))

@@ -23,6 +23,17 @@ spec:
         - name: http
           containerPort: 8000
           protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 8000
+          periodSeconds: 10
         env:     
         - name: OTEL_SERVICE_NAME
           value: sunspot-backend

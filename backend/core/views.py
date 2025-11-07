@@ -183,3 +183,6 @@ def sunspot_view(request):
             {"error": "Could not retrieve sunspot data or invalid date parameter"}, 
             status=503
         )
+    
+def health_check(request):
+    return JsonResponse({"status": "ok"}, status=200) 
