@@ -74,13 +74,22 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
+SUNRISE_SUNSET_API_URL = "https://api.sunrisesunset.io/json"
+NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
+
+REDIS_SERVER = os.environ.get("REDIS_SERVER", "localhost:6379")
+REDIS_HOST, REDIS_PORT = REDIS_SERVER.split(":")
+REDIS_KEY_PREFIX = "sunspot:data"
+LONG_TTL = 7 * 60 * 60 * 24  # 7 days
+SHORT_TTL = 60 * 60 * 24     # 1 day
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
