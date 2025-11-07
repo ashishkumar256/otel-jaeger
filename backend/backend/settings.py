@@ -87,9 +87,9 @@ NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
 
 REDIS_SERVER = os.environ.get("REDIS_SERVER", "localhost:6379")
 REDIS_HOST, REDIS_PORT = REDIS_SERVER.split(":")
+REDIS_CONN_RETRY_COUNT=3
 REDIS_KEY_PREFIX = "sunspot:data"
-LONG_TTL = 7 * 60 * 60 * 24  # 7 days
-SHORT_TTL = 60 * 60 * 24     # 1 day
+CACHE_TTL = 7 * 60 * 60 * 24  # 7 days
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
