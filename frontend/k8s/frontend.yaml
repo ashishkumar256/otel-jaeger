@@ -52,7 +52,9 @@ spec:
         - name: OTEL_PYTHON_DISABLED_INSTRUMENTATIONS
           value: aws-lambda
         - name: SUNSPOT_BACKEND_ENDPOINT
-          value: "http://sunspot-backend.poc.svc.cluster.local:8000"                                                                            
+          value: "http://sunspot-backend.poc.svc.cluster.local:8000"
+        - name: OTEL_PYTHON_FLASK_EXCLUDED_URLS
+          value: "/health,^/metrics/.*"
 
 ---
 apiVersion: v1

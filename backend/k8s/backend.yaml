@@ -18,22 +18,7 @@ spec:
       containers:
       - name: sunspot-backend
         image: ashishkumar256/trace-api:1
-        imagePullPolicy: Always
-        ports:
-        - name: http
-          containerPort: 8000
-          protocol: TCP
-        readinessProbe:
-          httpGet:
-            path: /status
-            port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /status
-            port: 8000
-          periodSeconds: 10          
+        imagePullPolicy: Always     
         env:     
         - name: OTEL_SERVICE_NAME
           value: sunspot-backend
@@ -55,6 +40,23 @@ spec:
           value: backend.settings
         - name: REDIS_SERVER
           value: "127.0.0.1:6379"
+        - name: OTEL_PYTHON_DJANGO_EXCLUDED_URLS
+          value: "/status,^/admin/.*"
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 8000
+          periodSeconds: 10          
       - name: redis
         image: redis
         imagePullPolicy: Always
