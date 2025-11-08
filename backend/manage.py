@@ -25,7 +25,7 @@ def main():
     # Initialize OpenTelemetry Django Instrumentation
     try:
         DjangoInstrumentor().instrument()
-        logger.info(f"OpenTelemetry instrumentation successful: {e}")
+        logger.info(f"OpenTelemetry instrumentation successful")
     except Exception as e:
         logger.warning(f"OpenTelemetry instrumentation failed: {e}")
 
