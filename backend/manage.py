@@ -12,6 +12,8 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 
+logger = logging.getLogger("sunspot")
+
 # Enable trace context injection
 LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.DEBUG)
 
@@ -24,8 +26,7 @@ def main():
     try:
         DjangoInstrumentor().instrument()
     except Exception as e:
-        # Log or handle the exception, but don't stop the server start
-        print(f"OpenTelemetry instrumentation failed: {e}", file=sys.stderr)
+        logger.warning(f"OpenTelemetry instrumentation failed: {e}")
 
 
     try:
