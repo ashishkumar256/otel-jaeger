@@ -101,10 +101,11 @@ def get_cached_sunspot_by_city(city_name, date_str):
         if cached_data:
             try:
                 # Extract coordinates from the key
+                # Format: sunspot:data:city:lat:lon:date
                 key_parts = keys[0].split(":")
-                # Format: prefix:city:lat:lon:date
-                cached_lat = key_parts[2]
-                cached_lon = key_parts[3]
+                cached_city = key_parts[2]  # city name
+                cached_lat = key_parts[3]   # latitude
+                cached_lon = key_parts[4]   # longitude
                 sun_data = json.loads(cached_data)
                 return sun_data, cached_lat, cached_lon
             except (json.JSONDecodeError, IndexError) as e:
@@ -126,8 +127,9 @@ def get_cached_sunspot_by_coords(lat, lon, date_str):
         if cached_data:
             try:
                 # Extract city name from cache key
+                # Format: sunspot:data:city:lat:lon:date
                 key_parts = keys[0].split(":")
-                cached_city = key_parts[1]  # prefix:city:lat:lon:date
+                cached_city = key_parts[2]  # city name
                 sun_data = json.loads(cached_data)
                 return sun_data, cached_city
             except (json.JSONDecodeError, IndexError) as e:
