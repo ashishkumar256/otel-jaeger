@@ -4,6 +4,7 @@ import os
 import sys
 import logging
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.instrumentation.django import DjangoInstrumentor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,6 +18,16 @@ LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.DEBU
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+
+
+    # Initialize OpenTelemetry Django Instrumentation
+    try:
+        DjangoInstrumentor().instrument()
+    except Exception as e:
+        # Log or handle the exception, but don't stop the server start
+        print(f"OpenTelemetry instrumentation failed: {e}", file=sys.stderr)
+
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
