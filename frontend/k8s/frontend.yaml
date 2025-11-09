@@ -2,7 +2,15 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: poc
-
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sunspot-api-key
+  namespace: poc
+type: Opaque
+data:
+  api-key: YS1zZWNyZXQta2V5  # echo -n "a-secret-key" | base64
 ---  
 apiVersion: apps/v1
 kind: Deployment
@@ -23,7 +31,7 @@ spec:
     spec:
       containers:
       - name: sunspot-frontend
-        image: ashishkumar256/trace-ui:1
+        image: ashishkumar256/trace-ui:2
         imagePullPolicy: Always
         ports:
         - name: http
@@ -61,6 +69,11 @@ spec:
           value: "http://sunspot-backend.poc.svc.cluster.local:8000"
         - name: OTEL_PYTHON_FLASK_EXCLUDED_URLS
           value: "/health,^/metrics/.*"
+        - name: SUNSPOT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: sunspot-api-key
+              key: api-key          
 
 ---
 apiVersion: v1
