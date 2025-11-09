@@ -148,6 +148,52 @@ spec:
       targetPort: 8000
 
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sunspot-db-setup-script
+  namespace: poc
+data:
+  setup-script.sh: |
+    #!/bin/sh
+    echo "Starting database setup..."
+    cd /app
+    
+    # Check if database directory exists
+    echo "Checking database directory..."
+    ls -la /app/db/
+    
+    # Run migrations
+    echo "Running makemigrations..."
+    python manage.py makemigrations
+    
+    echo "Running migrate..."
+    python manage.py migrate
+    
+    # Create API keys
+    echo "Creating API keys..."
+    python manage.py shell -c "
+    from core.models import ApiKey
+    import os
+    
+    # Check if keys already exist to avoid duplicates
+    if not ApiKey.objects.filter(user='A').exists():
+        ApiKey.objects.create(user='A', key='a-secret-key')
+        print('Created API key for user A')
+    else:
+        print('API key for user A already exists')
+        
+    if not ApiKey.objects.filter(user='B').exists():
+        ApiKey.objects.create(user='B', key='b-secret-key')
+        print('Created API key for user B')
+    else:
+        print('API key for user B already exists')
+        
+    print('Total API keys:', ApiKey.objects.count())
+    "
+    
+    echo "Database setup completed successfully!"
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -168,43 +214,9 @@ spec:
           - "/bin/sh"
           - "-c"
           - |
-            echo "Starting database setup..."
-            cd /app
-            
-            # Check if database directory exists
-            echo "Checking database directory..."
-            ls -la /app/db/
-            
-            # Run migrations
-            echo "Running makemigrations..."
-            python manage.py makemigrations
-            
-            echo "Running migrate..."
-            python manage.py migrate
-            
-            # Create API keys
-            echo "Creating API keys..."
-            python manage.py shell -c "
-            from core.models import ApiKey
-            import os
-            
-            # Check if keys already exist to avoid duplicates
-            if not ApiKey.objects.filter(user='A').exists():
-                ApiKey.objects.create(user='A', key='a-secret-key')
-                print('Created API key for user A')
-            else:
-                print('API key for user A already exists')
-                
-            if not ApiKey.objects.filter(user='B').exists():
-                ApiKey.objects.create(user='B', key='b-secret-key')
-                print('Created API key for user B')
-            else:
-                print('API key for user B already exists')
-                
-            print('Total API keys:', ApiKey.objects.count())
-            "
-            
-            echo "Database setup completed successfully!"
+            # Make the script executable and run it
+            chmod +x /scripts/setup-script.sh
+            /scripts/setup-script.sh
         env:
         - name: OTEL_SERVICE_NAME
           value: sunspot-db-migrations
@@ -231,10 +243,16 @@ spec:
         volumeMounts:
         - name: sqlite-storage
           mountPath: /app/db
+        - name: setup-scripts
+          mountPath: /scripts
       volumes:
       - name: sqlite-storage
         hostPath:
           path: /mnt/backend/db/sqlite
           type: DirectoryOrCreate
+      - name: setup-scripts
+        configMap:
+          name: sunspot-db-setup-script
+          defaultMode: 0755
       restartPolicy: Never
   backoffLimit: 2
