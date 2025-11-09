@@ -146,3 +146,95 @@ spec:
       protocol: TCP
       port: 8000
       targetPort: 8000
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sunspot-db-setup
+  namespace: poc
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: check-backend-service
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z -w 1 sunspot-backend.poc.svc 8000; do echo waiting for sunspot-backend service...; sleep 5; done; echo "Service reachable, waiting 10 seconds for full startup..."; sleep 10;']
+      containers:
+      - name: db-migrations
+        image: ashishkumar256/trace-api:2
+        imagePullPolicy: Always
+        command:
+          - "/bin/sh"
+          - "-c"
+          - |
+            echo "Starting database setup..."
+            cd /app
+            
+            # Check if database directory exists
+            echo "Checking database directory..."
+            ls -la /app/db/
+            
+            # Run migrations
+            echo "Running makemigrations..."
+            python manage.py makemigrations
+            
+            echo "Running migrate..."
+            python manage.py migrate
+            
+            # Create API keys
+            echo "Creating API keys..."
+            python manage.py shell -c "
+            from core.models import ApiKey
+            import os
+            
+            # Check if keys already exist to avoid duplicates
+            if not ApiKey.objects.filter(user='A').exists():
+                ApiKey.objects.create(user='A', key='a-secret-key')
+                print('Created API key for user A')
+            else:
+                print('API key for user A already exists')
+                
+            if not ApiKey.objects.filter(user='B').exists():
+                ApiKey.objects.create(user='B', key='b-secret-key')
+                print('Created API key for user B')
+            else:
+                print('API key for user B already exists')
+                
+            print('Total API keys:', ApiKey.objects.count())
+            "
+            
+            echo "Database setup completed successfully!"
+        env:
+        - name: OTEL_SERVICE_NAME
+          value: sunspot-db-migrations
+        - name: OTEL_TRACES_EXPORTER
+          value: otlp
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: http/protobuf
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://otel-agent-opentelemetry-collector.tracing.svc:4318
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: application=sunspot-db-migrations
+        - name: OTEL_PYTHON_LOG_CORRELATION
+          value: "true"
+        - name: OTEL_METRICS_EXPORTER
+          value: none
+        - name: OTEL_PYTHON_DISABLED_INSTRUMENTATIONS
+          value: aws-lambda                                                                      
+        - name: DJANGO_SETTINGS_MODULE
+          value: backend.settings
+        - name: REDIS_SERVER
+          value: "redis.poc.svc:6379"
+        - name: OTEL_PYTHON_DJANGO_EXCLUDED_URLS
+          value: "/status,^/admin/.*"
+        volumeMounts:
+        - name: sqlite-storage
+          mountPath: /app/db
+      volumes:
+      - name: sqlite-storage
+        hostPath:
+          path: /mnt/backend/db/sqlite
+          type: DirectoryOrCreate
+      restartPolicy: Never
+  backoffLimit: 2
