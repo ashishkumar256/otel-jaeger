@@ -3,6 +3,13 @@
 import os
 import sys
 import logging
+
+from opentelemetry.instrumentation.django import DjangoInstrumentor
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+from opentelemetry import trace
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 logging.basicConfig(
@@ -13,6 +20,20 @@ logging.basicConfig(
 
 # Enable trace context injection
 LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.DEBUG)
+
+# Configure tracing (uses your env vars like OTEL_EXPORTER_OTLP_ENDPOINT, etc.)
+trace.set_tracer_provider(
+    TracerProvider(resource=Resource.create({}))
+)
+tracer_provider = trace.get_tracer_provider()
+
+# Attach an OTLP exporter (reads endpoint/protocol from environment)
+otlp_exporter = OTLPSpanExporter()
+tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+
+# Enable Django auto-instrumentation
+DjangoInstrumentor().instrument()
+# --- end of tracing setup ---
 
 def main():
     """Run administrative tasks."""
