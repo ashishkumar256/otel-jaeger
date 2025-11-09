@@ -122,7 +122,15 @@ spec:
           httpGet:
             path: /status
             port: 8000
-          periodSeconds: 10          
+          periodSeconds: 10         
+        volumeMounts:
+        - name: sqlite-storage
+          mountPath: /app/db       
+      volumes:
+      - name: sqlite-storage
+        hostPath:
+          path: /mnt/backend/db/sqlite
+          type: DirectoryOrCreate             
 
 ---
 apiVersion: v1
