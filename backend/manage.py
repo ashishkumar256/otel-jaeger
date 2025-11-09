@@ -4,7 +4,6 @@ import os
 import sys
 import logging
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.instrumentation.django import DjangoInstrumentor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -12,23 +11,12 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 
-logger = logging.getLogger("sunspot")
-
 # Enable trace context injection
 LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.DEBUG)
 
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
-
-
-    # Initialize OpenTelemetry Django Instrumentation
-    try:
-        DjangoInstrumentor().instrument()
-        logger.info(f"OpenTelemetry instrumentation successful")
-    except Exception as e:
-        logger.warning(f"OpenTelemetry instrumentation failed: {e}")
-
 
     try:
         from django.core.management import execute_from_command_line
