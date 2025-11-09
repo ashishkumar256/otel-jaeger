@@ -4,30 +4,49 @@ import os
 import sys
 import logging
 
-from opentelemetry.distro import configure_opentelemetry
-from opentelemetry.instrumentation.logging import LoggingInstrumentor
-
+# Configure logging first
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] [trace_id=%(otelTraceID)s span_id=%(otelSpanID)s] %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 
-LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.DEBUG)
-
-
 logger = logging.getLogger("sunspot")
 
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
-
-    # Otel client config
+    
+    # Initialize OpenTelemetry BEFORE importing Django
     try:
-        configure_opentelemetry()
-        logger.warning(f"OpenTelemetry instrumentation successful")
+        from opentelemetry import trace
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        from opentelemetry.instrumentation.django import DjangoInstrumentor
+        from opentelemetry.instrumentation.requests import RequestsInstrumentor
+        from opentelemetry.instrumentation.redis import RedisInstrumentor
+        from opentelemetry.instrumentation.logging import LoggingInstrumentor
+
+        # Set up tracing
+        trace.set_tracer_provider(TracerProvider())
+        trace.get_tracer_provider().add_span_processor(
+            BatchSpanProcessor(OTLPSpanExporter())
+        )
+
+        # Instrument everything
+        DjangoInstrumentor().instrument()
+        RequestsInstrumentor().instrument()
+        RedisInstrumentor().instrument()
+        LoggingInstrumentor().instrument(
+            set_logging_format=True, 
+            log_level=logging.DEBUG
+        )
+        
+        logger.info("OpenTelemetry instrumentation successful - automatic tracing enabled")
+        
     except Exception as e:
-        logger.warning(f"⚠️ OpenTelemetry initialization failed: {e}")
+        logger.warning(f"OpenTelemetry instrumentation failed: {e}")
 
     try:
         from django.core.management import execute_from_command_line
@@ -38,7 +57,6 @@ def main():
             "forget to activate a virtual environment?"
         ) from exc
     execute_from_command_line(sys.argv)
-
 
 if __name__ == '__main__':
     main()
