@@ -4,10 +4,7 @@ import os
 import sys
 import logging
 
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider, export
-from opentelemetry.instrumentation.django import DjangoInstrumentor
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.distro import configure_opentelemetry
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 logging.basicConfig(
@@ -27,16 +24,10 @@ def main():
 
     # Otel client config
     try:
-        trace.set_tracer_provider(TracerProvider())
-        trace.get_tracer_provider().add_span_processor(
-            export.BatchSpanProcessor(OTLPSpanExporter())
-        )
-
-        DjangoInstrumentor().instrument()
+        configure_opentelemetry()
         logger.warning(f"OpenTelemetry instrumentation successful")
     except Exception as e:
-        logger.warning(f"OpenTelemetry instrumentation failed: {e}")
-
+        logger.warning(f"⚠️ OpenTelemetry initialization failed: {e}")
 
     try:
         from django.core.management import execute_from_command_line
