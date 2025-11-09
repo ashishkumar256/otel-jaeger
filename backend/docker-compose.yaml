@@ -1,6 +1,10 @@
 version: '3.9'
 
 services:
+  redis:  
+    image: redis
+    container_name: redis
+    network_mode: "host"
   django:
     build: .
     network_mode: "host"    
