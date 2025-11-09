@@ -4,9 +4,9 @@ import os
 import sys
 import logging
 
-from opentelemetry.instrumentation.django import DjangoInstrumentor
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider, export
+from opentelemetry.instrumentation.django import DjangoInstrumentor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
@@ -16,30 +16,27 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 
-# Enable trace context injection
 LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.DEBUG)
 
-# # Configure tracing (uses your env vars like OTEL_EXPORTER_OTLP_ENDPOINT, etc.)
-# trace.set_tracer_provider(
-#     TracerProvider(resource=Resource.create({}))
-# )
-# tracer_provider = trace.get_tracer_provider()
 
-# # Attach an OTLP exporter (reads endpoint/protocol from environment)
-# otlp_exporter = OTLPSpanExporter()
-# tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
-
-provider = TracerProvider()
-provider.add_span_processor(export.BatchSpanProcessor(OTLPSpanExporter()))
-trace.set_tracer_provider(provider)
-
-# Enable Django auto-instrumentation
-DjangoInstrumentor().instrument()
-# --- end of tracing setup ---
+logger = logging.getLogger("sunspot")
 
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+
+    # Otel client config
+    try:
+        trace.set_tracer_provider(TracerProvider())
+        trace.get_tracer_provider().add_span_processor(
+            export.BatchSpanProcessor(OTLPSpanExporter())
+        )
+
+        DjangoInstrumentor().instrument()
+        logger.warning(f"OpenTelemetry instrumentation successful")
+    except Exception as e:
+        logger.warning(f"OpenTelemetry instrumentation failed: {e}")
+
 
     try:
         from django.core.management import execute_from_command_line
