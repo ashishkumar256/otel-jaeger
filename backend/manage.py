@@ -6,8 +6,7 @@ import logging
 
 from opentelemetry.instrumentation.django import DjangoInstrumentor
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace import TracerProvider, export
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
@@ -30,10 +29,9 @@ LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.DEBU
 # otlp_exporter = OTLPSpanExporter()
 # tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
 
-trace.set_tracer_provider(TracerProvider())
-trace.get_tracer_provider().add_span_processor(
-    BatchSpanProcessor(OTLPSpanExporter())  # reads OTEL_* env vars automatically
-)
+provider = TracerProvider()
+provider.add_span_processor(export.BatchSpanProcessor(OTLPSpanExporter()))
+trace.set_tracer_provider(provider)
 
 # Enable Django auto-instrumentation
 DjangoInstrumentor().instrument()
