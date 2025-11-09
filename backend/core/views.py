@@ -6,9 +6,18 @@ import redis
 import requests 
 from dateutil import parser 
 from django.conf import settings 
-from django.http import JsonResponse 
+from django.http import HttpResponse, JsonResponse
+from opentelemetry.trace import get_current_span
+
 
 logger = logging.getLogger("sunspot")
+
+def hello(request):
+    span = get_current_span()
+    span_context = span.get_span_context()
+    logger.info("Current span: %s", span_context)
+    logger.info(f"Hello view accessed — DEBUG={settings.DEBUG}")    
+    return HttpResponse(f"Hello, world! with span: {span_context}")
 
 def initialize_redis_client(conn_retry_count=1):
     try:
