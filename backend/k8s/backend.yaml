@@ -83,7 +83,7 @@ spec:
         command: ['sh', '-c', 'until nc -z -w 1 redis.poc.svc 6379; do echo waiting for redis service...; sleep 5; done;']    
       containers:
       - name: sunspot-backend
-        image: ashishkumar256/trace-api:4
+        image: ashishkumar256/trace-api:manual-1
         imagePullPolicy: Always     
         env:     
         - name: OTEL_SERVICE_NAME
@@ -208,7 +208,7 @@ spec:
         command: ['sh', '-c', 'until nc -z -w 1 sunspot-backend.poc.svc 8000; do echo waiting for sunspot-backend service...; sleep 5; done; echo "Service reachable, waiting 10 seconds for full startup..."; sleep 10;']
       containers:
       - name: db-migrations
-        image: ashishkumar256/trace-api:4
+        image: ashishkumar256/trace-api:manual-1
         imagePullPolicy: Always
         command:
           - "/bin/sh"
