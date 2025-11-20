@@ -291,10 +291,7 @@ def redis_timeout(request):
         return JsonResponse({"error": "Redis client not available"}, status=500)
     
     try:
-        # This Lua script sleeps for 2 seconds, which should exceed the 1-second socket_timeout
-        # defined in initialize_redis_client.
-        # It's important to use redis.exceptions.TimeoutError.
-        redis_client.eval("redis.call('ping'); redis.call('client', 'pause', 2000)", 0)
+        redis_client.blpop("nonexistent-key", timeout=5)
         logger.info("Redis responded (unexpectedly - maybe timeout not configured/working).")
         return JsonResponse({"message": "Redis responded"}, status=200)
     except redis.exceptions.TimeoutError:
