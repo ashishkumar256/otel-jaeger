@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
       - name: sunspot-frontend
-        image: ashishkumar256/trace-ui:manual
+        image: ashishkumar256/trace-ui:manual-with-processors
         imagePullPolicy: Always
         ports:
         - name: http

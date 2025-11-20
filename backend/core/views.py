@@ -420,5 +420,47 @@ def sunspot_view(request):
             span.set_attribute("business.result", "failure")
             return JsonResponse({"error": "Could not retrieve sunspot data"}, status=503)
 
+def redis_timeout(request):
+    """View to deliberately cause a Redis socket timeout."""
+    with tracer.start_as_current_span("redis.timeout_test") as span:
+        span.set_attribute("test.type", "redis_timeout")
+        logger.info("Attempting to cause Redis timeout.")
+        
+        if not redis_client:
+            logger.error("Redis client not initialized.")
+            span.set_status(Status(StatusCode.ERROR, "Redis client not available"))
+            return JsonResponse({"error": "Redis client not available"}, status=500)
+
+        try:
+            # This should exceed the socket_timeout
+            redis_client.blpop("nonexistent-key", timeout=5)
+            logger.info("Redis responded (unexpectedly)")
+            span.add_event("redis_timeout_not_triggered")
+            return JsonResponse({"message": "Redis responded"}, status=200)
+        except redis.exceptions.TimeoutError:
+            logger.error("Redis timeout occurred as expected.")
+            span.set_status(Status(StatusCode.ERROR, "Redis timeout occurred"))
+            span.add_event("redis_timeout_triggered")
+            return JsonResponse({"error": "Redis timeout occurred"}, status=504)
+        except Exception as e:
+            logger.error(f"Unexpected error in redis_timeout: {str(e)}", exc_info=True)
+            span.set_status(Status(StatusCode.ERROR, f"Unexpected error: {str(e)}"))
+            return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
+
+def div_zero(request):
+    """View to deliberately cause an unhandled exception (ZeroDivisionError)."""
+    with tracer.start_as_current_span("div_zero_test") as span:
+        span.set_attribute("test.type", "zero_division_error")
+        logger.critical("Deliberately causing a crash (ZeroDivisionError).")
+        
+        try:
+            result = 1 / 0
+            return JsonResponse({"message": f"This should not execute: {result}"}, status=200)
+        except ZeroDivisionError as e:
+            span.set_status(Status(StatusCode.ERROR, f"ZeroDivisionError: {e}"))
+            span.set_attribute("error.type", "zero_division")
+            span.record_exception(e)
+            return JsonResponse({"error": "Division by zero error occurred"}, status=500)
+
 def health_check(request):
     return JsonResponse({"status": "ok"}, status=200)

@@ -30,9 +30,9 @@ def fetch_sunspot(endpoint):
             # Add business context to the span
             span.set_attribute("http.url", endpoint)
             span.set_attribute("business.service", "sunspot_lookup")
-            
+
             logger.info(f"Fetching sunspot data from: {endpoint}")
-            
+
             # Get API key from environment variable
             api_key = os.environ.get('SUNSPOT_API_KEY')
             if not api_key:
@@ -40,19 +40,19 @@ def fetch_sunspot(endpoint):
                 span.set_status(Status(StatusCode.ERROR, "API key not configured"))
                 span.set_attribute("error.type", "configuration_error")
                 return "Internal server error: API key not configured", 500
-            
+
             headers = {
                 'X-API-KEY': api_key
             }
-            
+
             logger.debug(f"Making request with API key: {api_key[:8]}...")  # Log partial key for security
-            
+
             # Record the start time for latency measurement
             span.add_event("starting_backend_api_request")
-            
+
             response = requests.get(endpoint, headers=headers)
             response.raise_for_status()
-            
+
             # Record success metrics
             span.set_attribute("http.status_code", response.status_code)
             span.add_event("backend_api_request_successful")
@@ -63,14 +63,18 @@ def fetch_sunspot(endpoint):
             span.set_status(Status(StatusCode.ERROR, f"HTTP error: {e}"))
             span.set_attribute("http.status_code", e.response.status_code)
             span.set_attribute("error.type", "http_error")
-            
+
             if e.response.status_code == 401:
                 logger.error(f"Authentication failed - invalid API key for {endpoint}")
                 span.set_attribute("auth.error", "invalid_api_key")
                 return "Authentication failed: Invalid API key", 401
+            elif e.response.status_code == 504:
+                logger.error(f"Backend reported a Gateway Timeout (504) for {endpoint}")
+                span.set_attribute("timeout.error", "backend_timeout")
+                return f"Backend timeout error: {e.response.text}", 504
             else:
                 logger.error(f"HTTP error fetching sunspot data from {endpoint}: {str(e)}")
-                return f"Error fetching sun spot timings: {e}", e.response.status_code
+                return f"Error fetching sun spot timings: {e.response.text}", e.response.status_code
         except requests.exceptions.RequestException as e:
             span.set_status(Status(StatusCode.ERROR, f"Request error: {e}"))
             span.set_attribute("error.type", "network_error")
@@ -94,7 +98,7 @@ def sunspot_combined_query():
         # Add ALL business context to the span
         span.set_attribute("business.operation", "sunspot_lookup")
         span.set_attribute("user.input.city", city or "not_provided")
-        span.set_attribute("user.input.lat", lat or "not_provided") 
+        span.set_attribute("user.input.lat", lat or "not_provided")
         span.set_attribute("user.input.lon", lon or "not_provided")
         span.set_attribute("user.input.date", date or "not_provided")
         span.set_attribute("lookup.type", "city" if city else "coordinates")
@@ -132,20 +136,46 @@ def sunspot_combined_query():
 
         span.set_attribute("backend.endpoint", endpoint)
         logger.debug(f"Constructed backend endpoint: {endpoint}")
-        
+
         # Record that we're about to make the backend call
         span.add_event("initiating_backend_call")
-        
+
         result, status = fetch_sunspot(endpoint)
-        
+
         # Record the outcome
         span.set_attribute("http.response.status", status)
         if status == 200:
             span.add_event("sunspot_lookup_successful")
         else:
             span.set_status(Status(StatusCode.ERROR, f"Backend returned error: {status}"))
-            
+
         logger.info(f"Request completed with status: {status}")
+        return result, status
+
+@app.route('/test/timeout')
+def sunspot_timeout_test():
+    """Route to test backend Redis timeout error."""
+    with tracer.start_as_current_span("sunspot.timeout_test") as span:
+        span.set_attribute("test.type", "redis_timeout")
+        sunspot_service = os.environ.get('SUNSPOT_BACKEND_ENDPOINT', "http://localhost:8000")
+        endpoint = f'{sunspot_service}/api/timeout'
+        logger.info(f"Calling backend timeout test endpoint: {endpoint}")
+        
+        result, status = fetch_sunspot(endpoint)
+        span.set_attribute("test.result_status", status)
+        return result, status
+
+@app.route('/test/crash')
+def sunspot_crash_test():
+    """Route to test backend unhandled exception/crash."""
+    with tracer.start_as_current_span("sunspot.crash_test") as span:
+        span.set_attribute("test.type", "zero_division")
+        sunspot_service = os.environ.get('SUNSPOT_BACKEND_ENDPOINT', "http://localhost:8000")
+        endpoint = f'{sunspot_service}/api/crash'
+        logger.info(f"Calling backend crash test endpoint: {endpoint}")
+        
+        result, status = fetch_sunspot(endpoint)
+        span.set_attribute("test.result_status", status)
         return result, status
 
 @app.route('/health')
