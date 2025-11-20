@@ -283,5 +283,32 @@ def sunspot_view(request):
     else:
         return JsonResponse({"error": "Could not retrieve sunspot data"}, status=503)
 
+def redis_timeout(request):
+    """View to deliberately cause a Redis socket timeout."""
+    logger.info("Attempting to cause Redis timeout.")
+    if not redis_client:
+        logger.error("Redis client not initialized.")
+        return JsonResponse({"error": "Redis client not available"}, status=500)
+    
+    try:
+        # This Lua script sleeps for 2 seconds, which should exceed the 1-second socket_timeout
+        # defined in initialize_redis_client.
+        # It's important to use redis.exceptions.TimeoutError.
+        redis_client.eval("redis.call('ping'); redis.call('client', 'pause', 2000)", 0)
+        logger.info("Redis responded (unexpectedly - maybe timeout not configured/working).")
+        return JsonResponse({"message": "Redis responded"}, status=200)
+    except redis.exceptions.TimeoutError:
+        logger.error("Redis timeout occurred as expected.")
+        return JsonResponse({"error": "Redis timeout occurred"}, status=504)
+    except Exception as e:
+        logger.error(f"Unexpected error in timeout_redis_view: {str(e)}", exc_info=True)
+        return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
+
+def div_zero(request):
+    """View to deliberately cause an unhandled exception (ZeroDivisionError)."""
+    logger.critical("Deliberately causing a crash (ZeroDivisionError).")
+    result = 1 / 0
+    return JsonResponse({"message": f"This should not execute: {result}"}, status=200)
+
 def health_check(request):
     return JsonResponse({"status": "ok"}, status=200)
