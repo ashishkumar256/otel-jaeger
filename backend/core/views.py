@@ -476,5 +476,41 @@ def exhaust(request, delay):
         except Exception as e:
             logger.warning(f"Failed to fetch/update counter in Redis: {e}")
 
+def factorial(request, n: int):  
+    with tracer.start_as_current_span("factorial.compute") as span:  
+        span.set_attribute("factorial.input", n)  
+        logger.info(f"Received request for factorial of {n}")  
+
+        # Case 1: negative input — deny  
+        if n < 0:  
+            span.set_attribute("error.type", "factorial_deny_for_neg_num")  
+            span.set_status(Status(StatusCode.ERROR, f"Negative input {n} not allowed"))  
+            logger.error(f"Negative input not allowed: {n}")  
+            return JsonResponse(  
+                {"error": f"Negative input {n} not allowed"},  
+                status=400  
+            )  
+
+        # Case 2: too large input — exceeds allowed max  
+        if n > 1558:  
+            span.set_attribute("error.type", "factorial_max_allowed_num_1558")  
+            span.set_status(Status(StatusCode.ERROR, f"Input {n} exceeds max allowed 1558"))  
+            logger.error(f"Input exceeds max allowed: {n}")  
+            return JsonResponse(  
+                {"error": f"Input exceeds max allowed 1558"},  
+                status=400  
+            )  
+
+        # Case 3: valid input — compute factorial  
+        result = 1  
+        for i in range(1, n + 1):  
+            result *= i  
+
+        span.set_attribute("factorial.output", result)  
+        span.set_status(Status(StatusCode.OK, "Success"))  
+        logger.info(f"Computed factorial for {n}, result = {result}")  
+
+        return JsonResponse({"n": n, "result": result}) 
+
 def health_check(request):
     return JsonResponse({"status": "ok"}, status=200)

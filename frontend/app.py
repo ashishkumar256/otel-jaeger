@@ -187,6 +187,18 @@ def exhaust_data(delay):
         result, status = fetch_sunspot(endpoint)
         return result, status
 
+@app.route('/factorial/<int:n>', methods=['GET'])
+def factorial_route(n):
+    with tracer.start_as_current_span("frontend.factorial_request") as span:
+        span.set_attribute("factorial.input", n)
+        logger.info(f"Frontend request for factorial of {n}")
+        resp = requests.get(f"{sunspot_service}/api/factorial/{n}")
+        data = resp.json()
+        span.set_attribute("http.status_code", resp.status_code)
+        if resp.status_code != 200:
+            span.set_attribute("error.type", data.get("error", "unknown"))
+        return data, resp.status_code
+
 @app.route('/health')
 def health_check():
     return 'OK', 200
