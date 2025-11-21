@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import json
 import requests
 from flask import Flask, request
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
@@ -11,6 +12,14 @@ from opentelemetry.trace import Status, StatusCode
 tracer = trace.get_tracer(__name__)
 
 app = Flask(__name__)
+
+# Create a global session with default headers
+session = requests.Session()
+api_key = os.environ.get('SUNSPOT_API_KEY')
+if api_key:
+    session.headers.update({'X-API-KEY': api_key})
+else:
+    logging.warning("SUNSPOT_API_KEY environment variable not set - API calls will fail")
 
 # configure logging
 logging.basicConfig(
@@ -34,24 +43,19 @@ def fetch_sunspot(endpoint):
 
             logger.info(f"Fetching sunspot data from: {endpoint}")
 
-            # Get API key from environment variable
-            api_key = os.environ.get('SUNSPOT_API_KEY')
             if not api_key:
                 logger.error("SUNSPOT_API_KEY environment variable not set")
                 span.set_status(Status(StatusCode.ERROR, "API key not configured"))
                 span.set_attribute("error.type", "configuration_error")
                 return "Internal server error: API key not configured", 500
 
-            headers = {
-                'X-API-KEY': api_key
-            }
-
-            logger.debug(f"Making request with API key: {api_key[:8]}...")  # Log partial key for security
+            logger.debug(f"Using API key: {api_key[:8]}...")  # Log partial key for security
 
             # Record the start time for latency measurement
             span.add_event("starting_backend_api_request")
 
-            response = requests.get(endpoint, headers=headers)
+            # Use the global session instead of requests.get()
+            response = session.get(endpoint)
             response.raise_for_status()
 
             # Record success metrics
@@ -192,12 +196,18 @@ def factorial_route(n):
     with tracer.start_as_current_span("frontend.factorial_request") as span:
         span.set_attribute("factorial.input", n)
         logger.info(f"Frontend request for factorial of {n}")
-        resp = requests.get(f"{sunspot_service}/api/factorial/{n}")
-        data = resp.json()
-        span.set_attribute("http.status_code", resp.status_code)
-        if resp.status_code != 200:
-            span.set_attribute("error.type", data.get("error", "unknown"))
-        return data, resp.status_code
+        
+        endpoint = f"{sunspot_service}/api/factorial/{n}"
+        result, status = fetch_sunspot(endpoint)
+        
+        # Handle JSON response
+        if status == 200:
+            try:
+                return json.loads(result), status
+            except json.JSONDecodeError:
+                return {"result": result}, status
+        else:
+            return {"error": result}, status
 
 @app.route('/health')
 def health_check():
