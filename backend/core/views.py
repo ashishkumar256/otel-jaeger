@@ -462,5 +462,19 @@ def div_zero(request):
             span.record_exception(e)
             return JsonResponse({"error": "Division by zero error occurred"}, status=500)
 
+def exhaust(request, delay):
+    with tracer.start_as_current_span("data.delay") as span:
+        delay = float(delay)
+        span.set_attribute("delay.duration(s)", delay)
+
+        try:
+            request_count = redis_client.incr("delay_requests_total")
+            span.set_attribute("delay.counter", request_count)
+            time.sleep(delay)
+            span.set_attribute("delay.status", "completed")
+            return JsonResponse({"status": "processed", "delay_time": delay, "request_count": request_count if redis_client else None})
+        except Exception as e:
+            logger.warning(f"Failed to fetch/update counter in Redis: {e}")
+
 def health_check(request):
     return JsonResponse({"status": "ok"}, status=200)

@@ -1,10 +1,11 @@
 from django.urls import path
-from .views import sunspot_view, hello, health_check, redis_timeout, div_zero
+from . import views
 
 urlpatterns = [
-    path('api/sunspot', sunspot_view),
-    path('api/timeout', redis_timeout),
-    path('api/crash', div_zero),    
-    path('hello', hello),
-    path('status', health_check),
+    path('hello', views.hello),
+    path('api/sunspot', views.sunspot_view),
+    path('api/timeout', views.redis_timeout),
+    path('api/crash', views.div_zero),
+    path('status', views.health_check),
+    path('exhaust/<float:delay>/', views.exhaust),
 ]

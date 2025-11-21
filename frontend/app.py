@@ -21,6 +21,7 @@ logging.basicConfig(
 LoggingInstrumentor().instrument(set_logging_format=True, log_level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
+sunspot_service = os.environ.get('SUNSPOT_BACKEND_ENDPOINT', "http://localhost:8000")
 
 # Business logic with manual tracing
 def fetch_sunspot(endpoint):
@@ -105,7 +106,6 @@ def sunspot_combined_query():
 
         logger.info(f"Received request - city: {city}, lat: {lat}, lon: {lon}, date: {date}")
 
-        sunspot_service = os.environ.get('SUNSPOT_BACKEND_ENDPOINT', "http://localhost:8000")
         # Start endpoint construction
         endpoint = f'{sunspot_service}/api/sunspot?'
         query_parts = []
@@ -157,7 +157,6 @@ def sunspot_timeout_test():
     """Route to test backend Redis timeout error."""
     with tracer.start_as_current_span("sunspot.timeout_test") as span:
         span.set_attribute("test.type", "redis_timeout")
-        sunspot_service = os.environ.get('SUNSPOT_BACKEND_ENDPOINT', "http://localhost:8000")
         endpoint = f'{sunspot_service}/api/timeout'
         logger.info(f"Calling backend timeout test endpoint: {endpoint}")
         
@@ -170,12 +169,22 @@ def sunspot_crash_test():
     """Route to test backend unhandled exception/crash."""
     with tracer.start_as_current_span("sunspot.crash_test") as span:
         span.set_attribute("test.type", "zero_division")
-        sunspot_service = os.environ.get('SUNSPOT_BACKEND_ENDPOINT', "http://localhost:8000")
         endpoint = f'{sunspot_service}/api/crash'
         logger.info(f"Calling backend crash test endpoint: {endpoint}")
         
         result, status = fetch_sunspot(endpoint)
         span.set_attribute("test.result_status", status)
+        return result, status
+
+@app.route('/exhaust/<float:delay>')
+def exhaust_data(delay):
+    """Frontend route for delay simulation"""
+    with tracer.start_as_current_span("data.exhaust") as span:
+        span.set_attribute("exhaust.requested", delay)
+
+        endpoint = f'{sunspot_service}/api/exhaust/{delay}'
+
+        result, status = fetch_sunspot(endpoint)
         return result, status
 
 @app.route('/health')
