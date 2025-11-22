@@ -200,15 +200,18 @@ def factorial_route(n):
         
         endpoint = f"{sunspot_service}/api/factorial/{n}"
         result, status = fetch_sunspot(endpoint)
-        
-        # Handle JSON response
+
         if status == 200:
             try:
                 return json.loads(result), status
             except json.JSONDecodeError:
                 return {"result": result}, status
         else:
-            return {"error": result}, status
+            try:
+                error_data = json.loads(result)
+                return error_data, status
+            except json.JSONDecodeError:
+                return {"error": result}, status
 
 @app.route('/health')
 def health_check():
