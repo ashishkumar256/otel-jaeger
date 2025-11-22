@@ -62,30 +62,43 @@ def fetch_sunspot(endpoint):
             span.set_attribute("http.status_code", response.status_code)
             span.add_event("backend_api_request_successful")
             logger.info(f"Successfully fetched sunspot data, status: {response.status_code}")
-            return response.text, response.status_code
+            
+            # Try to parse as JSON, fall back to text
+            try:
+                return response.json(), response.status_code
+            except ValueError:
+                return response.text, response.status_code
+                
         except requests.exceptions.HTTPError as e:
             # Record detailed error information
             span.set_status(Status(StatusCode.ERROR, f"HTTP error: {e}"))
             span.set_attribute("http.status_code", e.response.status_code)
             span.set_attribute("error.type", "http_error")
 
+            # Try to parse error response as JSON first
+            try:
+                error_data = e.response.json()
+            except ValueError:
+                error_data = e.response.text
+
             if e.response.status_code == 401:
                 logger.error(f"Authentication failed - invalid API key for {endpoint}")
                 span.set_attribute("auth.error", "invalid_api_key")
-                return "Authentication failed: Invalid API key", 401
+                return error_data, 401
             elif e.response.status_code == 504:
                 logger.error(f"Backend reported a Gateway Timeout (504) for {endpoint}")
                 span.set_attribute("timeout.error", "backend_timeout")
-                return f"Backend timeout error: {e.response.text}", 504
+                return error_data, 504
             else:
                 logger.error(f"HTTP error fetching sunspot data from {endpoint}: {str(e)}")
-                return f"Error fetching sun spot timings: {e.response.text}", e.response.status_code
+                return error_data, e.response.status_code
+                
         except requests.exceptions.RequestException as e:
             span.set_status(Status(StatusCode.ERROR, f"Request error: {e}"))
             span.set_attribute("error.type", "network_error")
             span.set_attribute("error.details", str(e))
             logger.error(f"Error fetching sunspot data from {endpoint}: {str(e)}")
-            return f"Error fetching sun spot timings: {e}", 503
+            return {"error": f"Network error: {e}"}, 503
 
 @app.route('/sunspot')
 def sunspot_combined_query():
@@ -201,17 +214,7 @@ def factorial_route(n):
         endpoint = f"{sunspot_service}/api/factorial/{n}"
         result, status = fetch_sunspot(endpoint)
 
-        if status == 200:
-            try:
-                return json.loads(result), status
-            except json.JSONDecodeError:
-                return {"result": result}, status
-        else:
-            try:
-                error_data = json.loads(result)
-                return error_data, status
-            except json.JSONDecodeError:
-                return {"error": result}, status
+        return result, status
 
 @app.route('/health')
 def health_check():
