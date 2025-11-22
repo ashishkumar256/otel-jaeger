@@ -2,8 +2,8 @@ from django.urls import path #re_path
 from . import views
 
 urlpatterns = [
-    path('hello', views.hello),
     path('status', views.health_check),
+    path('api/hello/<str:name>', views.hello),
     path('api/sunspot', views.sunspot_view),
     path('api/factorial/<str:n>', views.factorial),
     path('api/delay/<str:delay>', views.latency),

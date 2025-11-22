@@ -15,13 +15,17 @@ tracer = trace.get_tracer(__name__)
 
 logger = logging.getLogger("sunspot")
 
-def hello(request):
-    span = trace.get_current_span()
-    span_context = span.get_span_context()
-    logger.info("Current span: %s", span_context)
-    logger.info(f"Hello view accessed — DEBUG={settings.DEBUG}")    
-    return HttpResponse(f"Hello, world! with span: {span_context}")
+def hello(request, name):
+    # span = trace.get_current_span()
+    # span_context = span.get_span_context()
+    # logger.info("Current span: %s", span_context)
+    # logger.info(f"Hello view accessed — DEBUG={settings.DEBUG}")    
 
+    with tracer.start_as_current_span("data.hello") as span:
+        span.set_attribute("hello.received", name)
+        logger.info(f"Hello request for: {name}")
+        return HttpResponse(f"Hello from {name}!")
+    
 def initialize_redis_client(conn_retry_count=1):
     try:
         r = redis.Redis(

@@ -169,6 +169,17 @@ def sunspot_combined_query():
         logger.info(f"Request completed with status: {status}")
         return result, status
 
+@app.route('/hello/<string:name>')
+def hello(name):
+    with tracer.start_as_current_span("data.hello") as span:
+        span.set_attribute("hello.initiated", name)
+        
+        endpoint = f'{sunspot_service}/api/hello/{name}'
+        logger.info(f"Calling backend hello endpoint: {endpoint}")
+
+        result, status = fetch_sunspot(endpoint)
+        return result, status
+
 @app.route('/test/timeout')
 def sunspot_timeout_test():
     """Route to test backend Redis timeout error."""
@@ -193,7 +204,7 @@ def sunspot_crash_test():
         span.set_attribute("test.result_status", status)
         return result, status
 
-@app.route('/delay/<float:delay>')
+@app.route('/delay/<string:delay>')
 def latency(delay):
     with tracer.start_as_current_span("data.delay") as span:
         span.set_attribute("delay.requested", delay)
