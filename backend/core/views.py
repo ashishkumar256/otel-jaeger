@@ -485,18 +485,18 @@ def factorial(request, n):
         try:
             n = int(n)
         except ValueError:
-            span.set_attribute("error.type", "invalid_integer_format")
+            span.set_attribute("factorial.case", "invalid_integer_format")
             span.set_status(Status(StatusCode.ERROR, f"Invalid integer format: {n}"))
             logger.error(f"Invalid integer format: {n}")
             return JsonResponse(
                 {"error": f"Invalid integer format: {n}"},
                 status=400
             )
+
         # Case 1: negative input — deny  
         if n < 0:  
-            span.set_attribute("error.type", "factorial_deny_for_neg_num")  
-            span.set_status(Status(StatusCode.ERROR, f"Negative input {n} not allowed"))  
-            logger.error(f"Negative input not allowed: {n}")  
+            span.set_attribute("factorial.case", "negative_input_rejected")  
+            logger.info(f"Negative input rejected: {n}")
             return JsonResponse(  
                 {"error": f"Negative input {n} not allowed"},  
                 status=400  
@@ -504,9 +504,8 @@ def factorial(request, n):
 
         # Case 2: too large input — exceeds allowed max  
         if n > 1558:  
-            span.set_attribute("error.type", "factorial_max_allowed_num_1558")  
-            span.set_status(Status(StatusCode.ERROR, f"Input {n} exceeds max allowed 1558"))  
-            logger.error(f"Input exceeds max allowed: {n}")  
+            span.set_attribute("factorial.case", "input_exceeds_max_allowed")  
+            logger.info(f"Input exceeds max allowed: {n}")
             return JsonResponse(  
                 {"error": f"Input exceeds max allowed 1558"},  
                 status=400  
@@ -518,10 +517,9 @@ def factorial(request, n):
             result *= i  
 
         span.set_attribute("factorial.output", result)  
-        span.set_status(Status(StatusCode.OK, "Success"))  
         logger.info(f"Computed factorial for {n}, result = {result}")  
 
-        return JsonResponse({"n": n, "result": result}) 
+        return JsonResponse({"n": n, "result": result})
 
 def health_check(request):
     return JsonResponse({"status": "ok"}, status=200)
