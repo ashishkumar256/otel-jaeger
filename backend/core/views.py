@@ -462,7 +462,7 @@ def div_zero(request):
             span.record_exception(e)
             return JsonResponse({"error": "Division by zero error occurred"}, status=500)
 
-def exhaust(request, delay):
+def latency(request, delay):
     with tracer.start_as_current_span("data.delay") as span:
         delay = float(delay)
         span.set_attribute("delay.duration(s)", delay)
@@ -495,20 +495,20 @@ def factorial(request, n):
 
         # Case 1: negative input — deny  
         if n < 0:  
-            span.set_attribute("factorial.case", "negative_input_rejected")  
-            logger.info(f"Negative input rejected: {n}")
+            span.set_attribute("factorial.case", "neg_input_not_allowed")  
+            logger.warning(f"Negative input not allowed: {n}")
             return JsonResponse(  
-                {"error": f"Negative input {n} not allowed"},  
-                status=400  
+                {"warning": f"Negative input {n} not allowed"},  
+                status=200  
             )  
 
         # Case 2: too large input — exceeds allowed max  
         if n > 1558:  
-            span.set_attribute("factorial.case", "input_exceeds_max_allowed")  
-            logger.info(f"Input exceeds max allowed: {n}")
+            span.set_attribute("factorial.case", "input_not_allowed")  
+            logger.warning(f"Input not allowed: {n} (>1558)")
             return JsonResponse(  
-                {"error": f"Input exceeds max allowed 1558"},  
-                status=400  
+                {"error": f"Input not allowed >1558, output value will exceeds the limit (4300 digits)"},  
+                status=400
             )  
 
         # Case 3: valid input — compute factorial  

@@ -193,13 +193,12 @@ def sunspot_crash_test():
         span.set_attribute("test.result_status", status)
         return result, status
 
-@app.route('/exhaust/<float:delay>')
-def exhaust_data(delay):
-    """Frontend route for delay simulation"""
-    with tracer.start_as_current_span("data.exhaust") as span:
-        span.set_attribute("exhaust.requested", delay)
+@app.route('/delay/<float:delay>')
+def latency(delay):
+    with tracer.start_as_current_span("data.delay") as span:
+        span.set_attribute("delay.requested", delay)
 
-        endpoint = f'{sunspot_service}/api/exhaust/{delay}'
+        endpoint = f'{sunspot_service}/api/delay/{delay}'
 
         result, status = fetch_sunspot(endpoint)
         return result, status
