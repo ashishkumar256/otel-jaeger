@@ -476,11 +476,22 @@ def exhaust(request, delay):
         except Exception as e:
             logger.warning(f"Failed to fetch/update counter in Redis: {e}")
 
-def factorial(request, n: int):  
+def factorial(request, n):
     with tracer.start_as_current_span("factorial.compute") as span:  
         span.set_attribute("factorial.input", n)  
         logger.info(f"Received request for factorial of {n}")  
 
+        # Convert string to integer
+        try:
+            n = int(n)
+        except ValueError:
+            span.set_attribute("error.type", "invalid_integer_format")
+            span.set_status(Status(StatusCode.ERROR, f"Invalid integer format: {n}"))
+            logger.error(f"Invalid integer format: {n}")
+            return JsonResponse(
+                {"error": f"Invalid integer format: {n}"},
+                status=400
+            )
         # Case 1: negative input — deny  
         if n < 0:  
             span.set_attribute("error.type", "factorial_deny_for_neg_num")  
