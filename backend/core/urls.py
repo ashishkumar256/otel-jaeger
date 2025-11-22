@@ -8,5 +8,5 @@ urlpatterns = [
     path('api/factorial', views.factorial),
     path('api/crash', views.div_zero),
     path('status', views.health_check),
-    path('exhaust/<str:delay>/', views.exhaust),
+    path('exhaust/<str:delay>', views.exhaust),
 ]
