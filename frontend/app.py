@@ -191,9 +191,10 @@ def exhaust_data(delay):
         result, status = fetch_sunspot(endpoint)
         return result, status
 
-@app.route('/factorial/<int:n>', methods=['GET'])
+@app.route('/factorial/<float:n>', methods=['GET'])
 def factorial_route(n):
     with tracer.start_as_current_span("frontend.factorial_request") as span:
+        n = int(n)
         span.set_attribute("factorial.input", n)
         logger.info(f"Frontend request for factorial of {n}")
         
