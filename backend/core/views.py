@@ -474,7 +474,8 @@ def latency(request, delay):
         try:
             request_count = redis_client.incr("delay_requests_total")
             span.set_attribute("delay.counter", request_count)
-            time.sleep(delay)
+            if delay > 1.5: # avoid sleep if its less than 1.5 secs, it consumes times while simulation
+                time.sleep(delay)
             span.set_attribute("delay.status", "completed")
             return JsonResponse({"status": "processed", "delay_time": delay, "request_count": request_count if redis_client else None})
         except Exception as e:
